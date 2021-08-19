@@ -53,6 +53,14 @@ fn main() -> Result<(), Error> {
                 if !events.meta().is_empty() {
                     el.after(events.meta(), ContentType::Html);
                 }
+
+                if let Some(title) = events.title() {
+                    el.set_inner_content(
+                        &format!("{} - {}", title, CONFIG.site_name()),
+                        ContentType::Text,
+                    );
+                }
+
                 Ok(())
             })],
         )?;
@@ -111,9 +119,9 @@ fn main() -> Result<(), Error> {
 
 fn create_page(
     content: String,
-    mut element_content_handlers: Vec<(Cow<'_, Selector>, ElementContentHandlers<'_>)>,
+    handlers: Vec<(Cow<'_, Selector>, ElementContentHandlers<'_>)>,
 ) -> Result<String, Error> {
-    element_content_handlers.extend(vec![
+    let mut element_content_handlers = vec![
         element!("[role=main]", move |el| {
             el.set_inner_content(&content, ContentType::Html);
             Ok(())
@@ -142,7 +150,8 @@ fn create_page(
             }
             Ok(())
         }),
-    ]);
+    ];
+    element_content_handlers.extend(handlers);
 
     Ok(rewrite_str(
         include_str!("theme/layout.html"),
