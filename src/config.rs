@@ -39,6 +39,13 @@ pub static CONFIG: Lazy<Config> = Lazy::new(|| {
                 .takes_value(true),
         )
         .arg(
+            Arg::with_name("URL")
+                .long("url")
+                .help("the absolute URL of your site")
+                .env("URL")
+                .takes_value(true),
+        )
+        .arg(
             Arg::with_name("FILE")
                 .help("the markdown files to render")
                 .multiple(true)
@@ -66,6 +73,10 @@ impl Config {
 
     pub fn github_handle(&self) -> Option<&str> {
         self.0.value_of("GITHUB_HANDLE")
+    }
+
+    pub fn url(&self) -> Option<&str> {
+        self.0.value_of("URL")
     }
 
     pub fn files(&self) -> impl Iterator<Item = &str> {

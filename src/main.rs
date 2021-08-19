@@ -1,4 +1,5 @@
 mod config;
+mod feed;
 mod transform;
 
 use std::borrow::Cow;
@@ -48,7 +49,7 @@ fn main() -> Result<(), Error> {
         html::push_html(&mut content, &mut events);
 
         let html = create_page(
-            content,
+            &content,
             vec![element!("title", |el| {
                 if !events.meta().is_empty() {
                     el.after(events.meta(), ContentType::Html);
@@ -108,22 +109,25 @@ fn main() -> Result<(), Error> {
         posts.push(Post {
             file_name,
             title: events.title().map(String::from).unwrap_or_default(),
+            content,
             created_at,
         });
     }
 
-    create_index(posts)?;
+    posts.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+    create_index(&posts)?;
+    feed::create(&posts)?;
 
     Ok(())
 }
 
 fn create_page(
-    content: String,
+    content: &str,
     handlers: Vec<(Cow<'_, Selector>, ElementContentHandlers<'_>)>,
 ) -> Result<String, Error> {
     let mut element_content_handlers = vec![
         element!("[role=main]", move |el| {
-            el.set_inner_content(&content, ContentType::Html);
+            el.set_inner_content(content, ContentType::Html);
             Ok(())
         }),
         element!("title", |el| {
@@ -162,9 +166,7 @@ fn create_page(
     )?)
 }
 
-fn create_index(mut posts: Vec<Post>) -> Result<(), Error> {
-    posts.sort_by(|a, b| b.created_at.cmp(&a.created_at));
-
+fn create_index(posts: &[Post]) -> Result<(), Error> {
     let mut html = r#"<ul class="posts">"#.to_string();
     for post in posts {
         html += "<li>";
@@ -193,7 +195,20 @@ fn create_index(mut posts: Vec<Post>) -> Result<(), Error> {
     }
     html += "</ul>";
 
-    let html = create_page(html, vec![])?;
+    let html = create_page(
+        &html,
+        vec![element!("head", |el| {
+            if CONFIG.url().is_some() {
+                el.append(
+                    "<link href=\"/feed.xml\" type=\"application/atom+xml\" \
+                        rel=\"alternate\" title=\"Atom feed\" />\n",
+                    ContentType::Html,
+                );
+            }
+
+            Ok(())
+        })],
+    )?;
 
     let mut out_path = PathBuf::new();
     out_path.push(CONFIG.out_dir());
@@ -204,14 +219,15 @@ fn create_index(mut posts: Vec<Post>) -> Result<(), Error> {
 }
 
 #[derive(Debug)]
-struct Post {
+pub struct Post {
     file_name: String,
     title: String,
+    content: String,
     created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, thiserror::Error)]
-enum Error {
+pub enum Error {
     #[error(transparent)]
     Io(#[from] std::io::Error),
     #[error("failed to rewrite layout.html")]
@@ -220,4 +236,6 @@ enum Error {
     NonMarkdownFile(PathBuf),
     #[error("could not extract date for post: {0}")]
     MissingDate(PathBuf),
+    #[error("failed to write feed.xml")]
+    Xml(#[from] xml::writer::Error),
 }
