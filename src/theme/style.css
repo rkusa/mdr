@@ -12,7 +12,7 @@
   --palette-gray-900: #0F172A;
 
   --color-fg: var(--palette-gray-900);
-  --color-markdown-syntax: var(----palette-gray-300);
+  --color-markdown-syntax: var(--palette-gray-300);
   --color-header-bg: var(--palette-gray-800);
   --color-header-fg: var(--palette-gray-50);
 
@@ -126,9 +126,12 @@ a.anchor {
   transform: translateX(-100%);
   padding-right: 8px;
   box-sizing: border-box;
-  color: var(--color-markdown-syntax);
   text-decoration: none;
   font-weight: 300;
+}
+
+a.anchor, a.anchor:hover, a.anchor:visited {
+  color: var(--color-markdown-syntax);
 }
 
 a.anchor:hover {
