@@ -1,0 +1,167 @@
+:root {
+  /* Color source: https://tailwindcss.com/docs/customizing-colors#color-palette-reference */
+
+  --color-fg: #0F172A;
+  --color-markdown-syntax: #CBD5E1;
+  --color-header-bg: #1E293B;
+  --color-header-fg: #F8FAFC;
+
+  --code-theme-comment: #94A3B8;
+  --code-theme-type: #64748B;
+  --code-theme-punctuation: #64748B;
+  --code-theme-string: #475569;
+}
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  color: var(--color-fg);
+}
+
+/* main container */
+
+[role="main"] {
+  width: 750px;
+  padding: 0 128px;
+  margin: auto;
+}
+
+@media (max-width: 1005px) {
+  [role="main"] {
+    width: auto;
+    max-width: 750px;
+    padding: 0 16px;
+  }
+}
+
+[role="main"] p {
+  line-height: 1.45em;
+}
+
+/* header */
+
+#header {
+  background-color: var(--color-header-bg);
+  color: var(--color-header-fg);
+  height: 64px;
+  display: flex;
+}
+
+#header .container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 750px;
+  margin: auto;
+}
+
+#header svg {
+  width: 24px;
+  height: 24px;
+}
+
+.spacer {
+  flex-grow: 1;
+}
+
+@media (max-width: 1005px) {
+  #header .container {
+    padding: 0 16px;
+  }
+}
+
+@media (max-width: 754px) {
+  #header .container {
+    width: 100%;
+  }
+}
+
+#header h1 {
+  font-weight: 300;
+}
+
+#header h1 a, #header h1 a:hover, #header h1 a:visited {
+  color: var(--color-header-fg);
+  text-decoration: none;
+}
+
+/* headings */
+
+h1, h2, h3, h4, h5, h6 {
+  position: relative;
+  margin-block-start: 0.83rem;
+  margin-block-end: 0.83rem;
+  /* font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif; */
+  font-weight: 600;
+}
+
+h1 {
+  font-size: 2rem;
+}
+
+h2, h3, h4, h5, h6 {
+  font-size: 1.5rem;
+}
+
+a.anchor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translateX(-100%);
+  padding-right: 8px;
+  box-sizing: border-box;
+  color: var(--color-markdown-syntax);
+  text-decoration: none;
+  font-weight: 300;
+}
+
+a.anchor:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 1005px) {
+  h1, h2, h3, h4, h5, h6 {
+    display: flex;
+  }
+
+  a.anchor {
+    order: -1;
+    position: static;
+    transform: none;
+  }
+}
+
+/* posts list */
+
+ul.posts {
+  padding-inline-start: 16px;
+  line-height: 1.5em;
+}
+
+/* code theme */
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.source .path, .source .generic, .source .name {
+  /* font-weight: 600; */
+}
+
+.source .type {
+  font-weight: normal;
+  color: var(--code-theme-type);
+}
+
+.source .punctuation {
+  font-weight: normal;
+  color: var(--code-theme-punctuation);
+}
+
+.source .string {
+  color: var(--code-theme-string);
+}
+
+.source .comment {
+  color: var(--code-theme-comment);
+  font-style: italic;
+}
