@@ -37,6 +37,11 @@ body {
   line-height: 1.45em;
 }
 
+[role="main"] li {
+  margin-block-start: 1em;
+  margin-block-end: 1em;
+}
+
 /* header */
 
 #header {
