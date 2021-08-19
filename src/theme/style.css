@@ -45,7 +45,7 @@ body {
   }
 }
 
-[role="main"] p {
+[role="main"] p, [role="main"] li {
   line-height: 1.45em;
 }
 
