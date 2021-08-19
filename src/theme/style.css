@@ -1,15 +1,27 @@
 :root {
   /* Color source: https://tailwindcss.com/docs/customizing-colors#color-palette-reference */
+  --palette-gray-50: #F8FAFC;
+  --palette-gray-100: #F1F5F9;
+  --palette-gray-200: #E2E8F0;
+  --palette-gray-300: #CBD5E1;
+  --palette-gray-400: #94A3B8;
+  --palette-gray-500: #64748B;
+  --palette-gray-600: #475569;
+  --palette-gray-700: #334155;
+  --palette-gray-800: #1E293B;
+  --palette-gray-900: #0F172A;
 
-  --color-fg: #0F172A;
-  --color-markdown-syntax: #CBD5E1;
-  --color-header-bg: #1E293B;
-  --color-header-fg: #F8FAFC;
+  --color-fg: var(--palette-gray-900);
+  --color-markdown-syntax: var(----palette-gray-300);
+  --color-header-bg: var(--palette-gray-800);
+  --color-header-fg: var(--palette-gray-50);
 
-  --code-theme-comment: #94A3B8;
-  --code-theme-type: #64748B;
-  --code-theme-punctuation: #64748B;
-  --code-theme-string: #475569;
+  --code-theme-bg: var(--palette-gray-100);
+  --code-theme-fg: var(--color-fg);
+  --code-theme-comment: var(--palette-gray-400);
+  --code-theme-type: var(--palette-gray-500);
+  --code-theme-punctuation: var(--palette-gray-500);
+  --code-theme-string: var(--palette-gray-600);
 }
 
 body {
@@ -37,7 +49,7 @@ body {
   line-height: 1.45em;
 }
 
-[role="main"] li {
+[role="main"] p, [role="main"] li, [role="main"] pre {
   margin-block-start: 1em;
   margin-block-end: 1em;
 }
@@ -146,6 +158,22 @@ ul.posts {
 
 code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+code, pre {
+  color: var(--code-theme-fg);
+  background-color: var(--code-theme-bg);
+  border-radius: 4px;
+}
+
+p code {
+  font-size: 85%;
+  margin: 0;
+  padding: 4px 8px;
+}
+
+pre {
+  padding: 16px;
 }
 
 .source .path, .source .generic, .source .name {
