@@ -169,7 +169,7 @@ code, pre {
   border-radius: 4px;
 }
 
-p code {
+code {
   font-size: 85%;
   margin: 0;
   padding: 4px 8px;
@@ -177,6 +177,11 @@ p code {
 
 pre {
   padding: 16px;
+}
+
+pre code {
+  font-size: 100%;
+  padding: 0;
 }
 
 .source .path, .source .generic, .source .name {
