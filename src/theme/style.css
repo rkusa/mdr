@@ -12,7 +12,7 @@
   --palette-gray-900: #0F172A;
 
   --color-fg: var(--palette-gray-900);
-  --color-markdown-syntax: var(--palette-gray-300);
+  --color-muted: var(--palette-gray-300);
   --color-header-bg: var(--palette-gray-800);
   --color-header-fg: var(--palette-gray-50);
 
@@ -114,39 +114,76 @@ h1, h2, h3, h4, h5, h6 {
 h1 {
   font-size: 2rem;
 }
-
-h2, h3, h4, h5, h6 {
-  font-size: 1.5rem;
+h2 {
+  font-size: 1.43rem;
+}
+h3 {
+  font-size: 1.25rem;
+}
+h4, h5, h6 {
+  font-size: 1rem;
+  line-height: 20x;
 }
 
 a.anchor {
   position: absolute;
+  display: flex;
+  align-items: center;
+  width: 20px;
+  height: 100%;
   left: 0;
   top: 0;
+  box-sizing: border-box;
   transform: translateX(-100%);
   padding-right: 8px;
-  box-sizing: border-box;
+  box-sizing: content-box;
   text-decoration: none;
   font-weight: 300;
+  opacity: 0;
+}
+
+a.anchor:hover,
+h1:hover a.anchor,
+h2:hover a.anchor,
+h3:hover a.anchor,
+h4:hover a.anchor,
+h5:hover a.anchor,
+h6:hover a.anchor {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  a.anchor {
+    opacity: 1;
+  }
+}
+
+a.anchor svg {
+  width: 20px;
+  height: 20px;
 }
 
 a.anchor, a.anchor:hover, a.anchor:visited {
-  color: var(--color-markdown-syntax);
+  color: var(--color-muted);
 }
 
 a.anchor:hover {
   text-decoration: underline;
 }
 
-@media (max-width: 1005px) {
+@media (max-width: 820px) {
   h1, h2, h3, h4, h5, h6 {
     display: flex;
+    justify-content: space-between;
+    align-items: stretch;
   }
 
   a.anchor {
-    order: -1;
     position: static;
     transform: none;
+    height: auto;
+    padding-right: 0;
+    padding-left: 8px;
   }
 }
 

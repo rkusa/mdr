@@ -68,14 +68,14 @@ where
                     return Some(event);
                 }
 
-                Event::End(Tag::Heading(level)) => {
+                Event::End(Tag::Heading(_)) => {
                     if let Some(State::Heading { text }) = self.state.take() {
                         let id = create_anchor(&text); // TODO: avoid duplicates
                         let anchor = format!(
                             r##"<a href="#{}" id="{}" class="anchor" aria-hidden="true" tabindex="-1">{}</a>"##,
                             id,
                             id,
-                            "#".repeat(level as usize)
+                            include_str!("theme/link.svg"),
                         );
 
                         if self.title.is_none() {
