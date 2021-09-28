@@ -194,6 +194,10 @@ ul.posts {
   line-height: 1.5em;
 }
 
+ul.posts time {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
 /* code theme */
 
 code {
