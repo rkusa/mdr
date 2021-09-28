@@ -139,6 +139,17 @@ where
                     return Some(event);
                 }
 
+                Event::Code(ref code) => {
+                    match &mut self.state {
+                        Some(State::Heading { text: heading_text }) => {
+                            heading_text.push_str(code);
+                        }
+                        _ => {}
+                    }
+
+                    return Some(event);
+                }
+
                 // extract <meta /> tags to move them into the head of the document
                 Event::Html(html) if html.starts_with("<meta ") => {
                     self.meta += &html;
