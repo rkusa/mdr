@@ -140,11 +140,8 @@ where
                 }
 
                 Event::Code(ref code) => {
-                    match &mut self.state {
-                        Some(State::Heading { text: heading_text }) => {
-                            heading_text.push_str(code);
-                        }
-                        _ => {}
+                    if let Some(State::Heading { text: heading_text }) = &mut self.state {
+                        heading_text.push_str(code);
                     }
 
                     return Some(event);
