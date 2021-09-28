@@ -3,8 +3,8 @@ mod feed;
 mod transform;
 
 use std::borrow::Cow;
-use std::fs;
 use std::path::PathBuf;
+use std::{fs, io};
 
 use crate::config::CONFIG;
 use crate::transform::Transformer;
@@ -12,6 +12,7 @@ use chrono::{DateTime, NaiveDate, Utc};
 use lol_html::html_content::ContentType;
 use lol_html::{element, rewrite_str, ElementContentHandlers, RewriteStrSettings, Selector};
 use pulldown_cmark::{html, Options, Parser};
+use sha2::{Digest, Sha256};
 
 fn main() -> Result<(), Error> {
     let mut options = Options::empty();
@@ -20,18 +21,61 @@ fn main() -> Result<(), Error> {
     let out_dir = CONFIG.out_dir();
     fs::create_dir_all(out_dir)?;
 
-    let mut css_path = PathBuf::new();
-    css_path.push(out_dir);
-    css_path.push("style.css");
-    fs::write(css_path, include_str!("theme/style.css"))?;
+    // prepare layout
+    let element_content_handlers = vec![
+        element!("link[rel=stylesheet]", |el| {
+            if let Some(href) = el.get_attribute("href") {
+                match href.as_str() {
+                    "normalize.css" => {
+                        let new_href =
+                            hash_and_write("normalize", include_str!("theme/normalize.css"))?;
+                        el.set_attribute("href", &new_href)?;
+                    }
+                    "style.css" => {
+                        let new_href = hash_and_write("style", include_str!("theme/style.css"))?;
+                        el.set_attribute("href", &new_href)?;
+                    }
+                    _ => {}
+                }
+            }
 
-    let mut css_path = PathBuf::new();
-    css_path.push(out_dir);
-    css_path.push("normalize.css");
-    fs::write(css_path, include_str!("theme/normalize.css"))?;
+            Ok(())
+        }),
+        element!("title", |el| {
+            el.set_inner_content(CONFIG.site_name(), ContentType::Text);
+            Ok(())
+        }),
+        element!("#header h1 a", |el| {
+            el.set_inner_content(CONFIG.site_name(), ContentType::Html);
+            Ok(())
+        }),
+        element!("#link-github", |el| {
+            if let Some(username) = CONFIG.github_handle() {
+                let _ = el.set_attribute("href", &format!("https://github.com/{}", username));
+            } else {
+                el.remove();
+            }
+            Ok(())
+        }),
+        element!("#link-twitter", |el| {
+            if let Some(handle) = CONFIG.twitter_handle() {
+                let _ = el.set_attribute("href", &format!("https://twitter.com/{}", handle));
+            } else {
+                el.remove();
+            }
+            Ok(())
+        }),
+    ];
+    let layout = rewrite_str(
+        include_str!("theme/layout.html"),
+        RewriteStrSettings {
+            element_content_handlers,
+            ..RewriteStrSettings::default()
+        },
+    )?;
 
+    // write posts
     let mut posts = Vec::new();
-
     for path in CONFIG.files() {
         let path = PathBuf::from(path);
 
@@ -54,6 +98,7 @@ fn main() -> Result<(), Error> {
         html::push_html(&mut content, &mut events);
 
         let html = create_page(
+            &layout,
             &content,
             vec![element!("title", |el| {
                 if !events.meta().is_empty() {
@@ -120,50 +165,25 @@ fn main() -> Result<(), Error> {
     }
 
     posts.sort_by(|a, b| b.created_at.cmp(&a.created_at));
-    create_index(&posts)?;
+    create_index(&layout, &posts)?;
     feed::create(&posts)?;
 
     Ok(())
 }
 
 fn create_page(
+    layout: &str,
     content: &str,
     handlers: Vec<(Cow<'_, Selector>, ElementContentHandlers<'_>)>,
 ) -> Result<String, Error> {
-    let mut element_content_handlers = vec![
-        element!("[role=main]", move |el| {
-            el.set_inner_content(content, ContentType::Html);
-            Ok(())
-        }),
-        element!("title", |el| {
-            el.set_inner_content(CONFIG.site_name(), ContentType::Text);
-            Ok(())
-        }),
-        element!("#header h1 a", |el| {
-            el.set_inner_content(CONFIG.site_name(), ContentType::Html);
-            Ok(())
-        }),
-        element!("#link-github", |el| {
-            if let Some(username) = CONFIG.github_handle() {
-                let _ = el.set_attribute("href", &format!("https://github.com/{}", username));
-            } else {
-                el.remove();
-            }
-            Ok(())
-        }),
-        element!("#link-twitter", |el| {
-            if let Some(handle) = CONFIG.twitter_handle() {
-                let _ = el.set_attribute("href", &format!("https://twitter.com/{}", handle));
-            } else {
-                el.remove();
-            }
-            Ok(())
-        }),
-    ];
+    let mut element_content_handlers = vec![element!("[role=main]", move |el| {
+        el.set_inner_content(content, ContentType::Html);
+        Ok(())
+    })];
     element_content_handlers.extend(handlers);
 
     Ok(rewrite_str(
-        include_str!("theme/layout.html"),
+        layout,
         RewriteStrSettings {
             element_content_handlers,
             ..RewriteStrSettings::default()
@@ -171,7 +191,7 @@ fn create_page(
     )?)
 }
 
-fn create_index(posts: &[Post]) -> Result<(), Error> {
+fn create_index(layout: &str, posts: &[Post]) -> Result<(), Error> {
     let mut html = r#"<ul class="posts">"#.to_string();
     for post in posts {
         html += "<li>";
@@ -201,6 +221,7 @@ fn create_index(posts: &[Post]) -> Result<(), Error> {
     html += "</ul>";
 
     let html = create_page(
+        layout,
         &html,
         vec![element!("head", |el| {
             if CONFIG.url().is_some() {
@@ -221,6 +242,23 @@ fn create_index(posts: &[Post]) -> Result<(), Error> {
     fs::write(out_path, html)?;
 
     Ok(())
+}
+
+fn hash_and_write(name: &str, content: &str) -> io::Result<String> {
+    let mut hasher = Sha256::new();
+    hasher.update(content.as_bytes());
+    let hash = hasher.finalize();
+
+    let hashed_name = format!(
+        "{}-{}.css",
+        name,
+        base64::encode_config(&hash[..16], base64::URL_SAFE_NO_PAD)
+    );
+    let mut path = PathBuf::new();
+    path.push(CONFIG.out_dir());
+    path.push(&hashed_name);
+    fs::write(path, content)?;
+    Ok(hashed_name)
 }
 
 #[derive(Debug)]
