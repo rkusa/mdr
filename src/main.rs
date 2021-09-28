@@ -25,6 +25,11 @@ fn main() -> Result<(), Error> {
     css_path.push("style.css");
     fs::write(css_path, include_str!("theme/style.css"))?;
 
+    let mut css_path = PathBuf::new();
+    css_path.push(out_dir);
+    css_path.push("normalize.css");
+    fs::write(css_path, include_str!("theme/normalize.css"))?;
+
     let mut posts = Vec::new();
 
     for path in CONFIG.files() {
