@@ -196,6 +196,12 @@ ul.posts time {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
+/* images */
+
+[role="main"] img {
+  max-width: 100%;
+}
+
 /* code theme */
 
 code {

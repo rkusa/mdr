@@ -3,7 +3,7 @@ mod feed;
 mod transform;
 
 use std::borrow::Cow;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::{fs, io};
 
 use crate::config::CONFIG;
@@ -27,12 +27,16 @@ fn main() -> Result<(), Error> {
             if let Some(href) = el.get_attribute("href") {
                 match href.as_str() {
                     "normalize.css" => {
-                        let new_href =
-                            hash_and_write("normalize", include_str!("theme/normalize.css"))?;
+                        let new_href = hash_and_write(
+                            "normalize",
+                            Some("css"),
+                            include_str!("theme/normalize.css"),
+                        )?;
                         el.set_attribute("href", &new_href)?;
                     }
                     "style.css" => {
-                        let new_href = hash_and_write("style", include_str!("theme/style.css"))?;
+                        let new_href =
+                            hash_and_write("style", Some("css"), include_str!("theme/style.css"))?;
                         el.set_attribute("href", &new_href)?;
                     }
                     _ => {}
@@ -96,6 +100,41 @@ fn main() -> Result<(), Error> {
         let mut events = Transformer::new(Parser::new_ext(&input, options));
         let mut content = String::new();
         html::push_html(&mut content, &mut events);
+
+        // Collect assets from post.
+        let content = rewrite_str(
+            &content,
+            RewriteStrSettings {
+                element_content_handlers: vec![element!("img", |el| {
+                    if let Some(src) = el.get_attribute("src") {
+                        let src = Path::new(&src);
+                        if src.is_absolute() {
+                            return Ok(());
+                        }
+
+                        // relative to post's markdown file
+                        let src = if let Some(base) = path.parent() {
+                            base.join(src)
+                        } else {
+                            src.to_path_buf()
+                        };
+                        if !src.is_file() {
+                            return Ok(());
+                        }
+
+                        let name = src.file_stem().and_then(|n| n.to_str()).unwrap_or("image");
+                        let ext = src.extension().and_then(|n| n.to_str());
+                        let new_src = hash_and_write(name, ext, &fs::read(&src)?)?;
+                        el.set_attribute("src", &new_src)?;
+
+                        // TODO: wrap in link
+                        // TODO: convert image type?
+                    }
+                    Ok(())
+                })],
+                ..RewriteStrSettings::default()
+            },
+        )?;
 
         let html = create_page(
             &layout,
@@ -244,16 +283,25 @@ fn create_index(layout: &str, posts: &[Post]) -> Result<(), Error> {
     Ok(())
 }
 
-fn hash_and_write(name: &str, content: &str) -> io::Result<String> {
+fn hash_and_write(name: &str, ext: Option<&str>, content: impl AsRef<[u8]>) -> io::Result<String> {
     let mut hasher = Sha256::new();
-    hasher.update(content.as_bytes());
+    hasher.update(content.as_ref());
     let hash = hasher.finalize();
 
-    let hashed_name = format!(
-        "{}-{}.css",
-        name,
-        base64::encode_config(&hash[..16], base64::URL_SAFE_NO_PAD)
-    );
+    let hashed_name = if let Some(ext) = ext {
+        format!(
+            "{}-{}.{}",
+            name,
+            base64::encode_config(&hash[..16], base64::URL_SAFE_NO_PAD),
+            ext
+        )
+    } else {
+        format!(
+            "{}-{}",
+            name,
+            base64::encode_config(&hash[..16], base64::URL_SAFE_NO_PAD)
+        )
+    };
     let mut path = PathBuf::new();
     path.push(CONFIG.out_dir());
     path.push(&hashed_name);
