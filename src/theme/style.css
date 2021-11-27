@@ -254,3 +254,12 @@ pre code {
   color: var(--code-theme-comment);
   font-style: italic;
 }
+
+/* blockquote */
+
+blockquote {
+  margin-left: 0;
+  margin-right: 0;
+  padding-left: 16px;
+  border-left: 4px solid var(--code-theme-bg);
+}
