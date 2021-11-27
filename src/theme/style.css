@@ -12,7 +12,8 @@
   --palette-gray-900: #0F172A;
 
   --color-fg: var(--palette-gray-900);
-  --color-muted: var(--palette-gray-300);
+  --color-anchor: var(--palette-gray-300);
+  --color-muted: var(--palette-gray-500);
   --color-header-bg: var(--palette-gray-800);
   --color-header-fg: var(--palette-gray-50);
 
@@ -166,7 +167,7 @@ a.anchor svg {
 }
 
 a.anchor, a.anchor:hover, a.anchor:visited {
-  color: var(--color-muted);
+  color: var(--color-anchor);
 }
 
 a.anchor:hover {
@@ -258,6 +259,7 @@ pre code {
 /* blockquote */
 
 blockquote {
+  color: var(--color-muted);
   margin-left: 0;
   margin-right: 0;
   padding-left: 16px;
