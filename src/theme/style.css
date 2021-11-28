@@ -238,21 +238,21 @@ pre code {
   /* font-weight: 600; */
 }
 
-.source .type {
+code .type {
   font-weight: normal;
   color: var(--code-theme-type);
 }
 
-.source .punctuation {
+code .punctuation {
   font-weight: normal;
   color: var(--code-theme-punctuation);
 }
 
-.source .string {
+code .string {
   color: var(--code-theme-string);
 }
 
-.source .comment {
+code .comment {
   color: var(--code-theme-comment);
   font-style: italic;
 }

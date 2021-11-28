@@ -1,26 +1,24 @@
+use std::collections::HashMap;
+
 use deunicode::deunicode;
 use once_cell::sync::Lazy;
 use pulldown_cmark::{CodeBlockKind, CowStr, Event, Tag};
-use syntect::html::{ClassStyle, ClassedHTMLGenerator};
-use syntect::parsing::Scope;
-use syntect::parsing::SyntaxSet;
-use syntect::util::LinesWithEndings;
+use tree_sitter_highlight::{Highlight, HighlightConfiguration, Highlighter, HtmlRenderer};
 
-static SYNTAX_SET: Lazy<SyntaxSet> = Lazy::new(SyntaxSet::load_defaults_newlines);
-
-enum State<'a> {
+enum State {
     Heading {
         text: String,
     },
     CodeBlock {
-        highlighter: ClassedHTMLGenerator<'a>,
+        lang: String,
+        renderer: HtmlRenderer,
     },
 }
 
 pub struct Transformer<'a, I> {
     events: I,
     next: Option<Event<'a>>,
-    state: Option<State<'a>>,
+    state: Option<State>,
     meta: String,
     title: Option<String>,
 }
@@ -91,30 +89,20 @@ where
                 }
 
                 Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(ref lang))) => {
-                    let syntax = Scope::new(&format!("source.{}", lang))
-                        .ok()
-                        .and_then(|scope| SYNTAX_SET.find_syntax_by_scope(scope))
-                        .or_else(|| SYNTAX_SET.find_syntax_by_name(lang))
-                        .or_else(|| SYNTAX_SET.find_syntax_by_extension(lang));
-
-                    if let Some(syntax) = syntax {
+                    if !lang.is_empty() && get_highlight_config(lang).is_some() {
                         self.state = Some(State::CodeBlock {
-                            highlighter: ClassedHTMLGenerator::new_with_class_style(
-                                syntax,
-                                &SYNTAX_SET,
-                                ClassStyle::Spaced,
-                            ),
+                            lang: lang.to_string(),
+                            renderer: HtmlRenderer::new(),
                         });
                     }
-
                     return Some(event);
                 }
 
                 Event::End(Tag::CodeBlock(CodeBlockKind::Fenced(_))) => {
-                    if let Some(State::CodeBlock { highlighter }) = self.state.take() {
+                    if let Some(State::CodeBlock { renderer, .. }) = self.state.take() {
                         self.next = Some(event);
                         return Some(Event::Html(CowStr::Boxed(
-                            highlighter.finalize().into_boxed_str(),
+                            renderer.lines().collect::<String>().into_boxed_str(),
                         )));
                     } else {
                         return Some(event);
@@ -126,9 +114,18 @@ where
                         Some(State::Heading { text: heading_text }) => {
                             heading_text.push_str(text);
                         }
-                        Some(State::CodeBlock { highlighter }) => {
-                            for line in LinesWithEndings::from(text) {
-                                highlighter.parse_html_for_line_which_includes_newline(line);
+                        Some(State::CodeBlock { lang, renderer }) => {
+                            if let Some(config) = get_highlight_config(lang) {
+                                let mut highlighter = Highlighter::new();
+                                let highlights = highlighter
+                                    .highlight(config, text.as_bytes(), None, |lang| {
+                                        get_highlight_config(lang)
+                                    })
+                                    .unwrap();
+
+                                renderer
+                                    .render(highlights, text.as_bytes(), &highlight_class_name)
+                                    .unwrap();
                             }
 
                             continue;
@@ -159,6 +156,128 @@ where
 
         None
     }
+}
+
+const HIGHLIGHT_NAMES: &[&str] = &[
+    "comment",
+    "punctuation",
+    "string",
+    "type",
+    // "attribute",
+    // "constant",
+    // "function.builtin",
+    // "function",
+    // "keyword",
+    // "operator",
+    // "property",
+    // "punctuation.bracket",
+    // "punctuation.delimiter",
+    // "string.special",
+    // "tag",
+    // "type.builtin",
+    // "variable",
+    // "variable.builtin",
+    // "variable.parameter",
+];
+
+static HIGHLIGHT_CONFIGS: Lazy<HashMap<&'static str, HighlightConfiguration>> = Lazy::new(|| {
+    let mut configs = HashMap::with_capacity(1);
+    configs.insert("js", {
+        let mut config = HighlightConfiguration::new(
+            tree_sitter_javascript::language(),
+            tree_sitter_javascript::HIGHLIGHT_QUERY,
+            tree_sitter_javascript::INJECTION_QUERY,
+            tree_sitter_javascript::LOCALS_QUERY,
+        )
+        .unwrap();
+        config.configure(HIGHLIGHT_NAMES);
+        config
+    });
+    configs.insert("jsx", {
+        let mut config = HighlightConfiguration::new(
+            tree_sitter_javascript::language(),
+            tree_sitter_javascript::JSX_HIGHLIGHT_QUERY,
+            tree_sitter_javascript::INJECTION_QUERY,
+            tree_sitter_javascript::LOCALS_QUERY,
+        )
+        .unwrap();
+        config.configure(HIGHLIGHT_NAMES);
+        config
+    });
+    configs.insert("ts", {
+        let mut config = HighlightConfiguration::new(
+            tree_sitter_typescript::language_typescript(),
+            tree_sitter_typescript::HIGHLIGHT_QUERY,
+            "",
+            tree_sitter_typescript::LOCALS_QUERY,
+        )
+        .unwrap();
+        config.configure(HIGHLIGHT_NAMES);
+        config
+    });
+    configs.insert("tsx", {
+        let mut config = HighlightConfiguration::new(
+            tree_sitter_typescript::language_tsx(),
+            tree_sitter_typescript::HIGHLIGHT_QUERY,
+            "",
+            tree_sitter_typescript::LOCALS_QUERY,
+        )
+        .unwrap();
+        config.configure(HIGHLIGHT_NAMES);
+        config
+    });
+    configs.insert("rs", {
+        let mut config = HighlightConfiguration::new(
+            tree_sitter_rust::language(),
+            tree_sitter_rust::HIGHLIGHT_QUERY,
+            "",
+            "",
+        )
+        .unwrap();
+        config.configure(HIGHLIGHT_NAMES);
+        config
+    });
+    configs.insert("bash", {
+        let mut config = HighlightConfiguration::new(
+            tree_sitter_bash::language(),
+            tree_sitter_bash::HIGHLIGHT_QUERY,
+            "",
+            "",
+        )
+        .unwrap();
+        config.configure(HIGHLIGHT_NAMES);
+        config
+    });
+    configs
+});
+
+static HIGHLIGHT_ATTRS: Lazy<Vec<String>> = Lazy::new(|| {
+    HIGHLIGHT_NAMES
+        .iter()
+        .map(|scope| format!(r#"class="{}""#, scope.replace('.', " ")))
+        .collect()
+});
+
+fn get_highlight_config(lang: &str) -> Option<&'static HighlightConfiguration> {
+    match lang.to_ascii_lowercase().as_str() {
+        "js" | "javascript" => HIGHLIGHT_CONFIGS.get("js"),
+        "jsx" => HIGHLIGHT_CONFIGS.get("jsx"),
+        "ts" | "typescript" => HIGHLIGHT_CONFIGS.get("ts"),
+        "tsx" => HIGHLIGHT_CONFIGS.get("tsx"),
+        "rs" | "rust" => HIGHLIGHT_CONFIGS.get("rs"),
+        "bash" => HIGHLIGHT_CONFIGS.get("bash"),
+        _ => {
+            log::warn!(
+                "cannot highlight unsupported code block language `{}`",
+                lang
+            );
+            None
+        }
+    }
+}
+
+fn highlight_class_name<'a>(highlight: Highlight) -> &'a [u8] {
+    HIGHLIGHT_ATTRS[highlight.0].as_bytes()
 }
 
 fn create_anchor(s: &str) -> String {

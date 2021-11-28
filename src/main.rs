@@ -15,6 +15,10 @@ use pulldown_cmark::{html, Options, Parser};
 use sha2::{Digest, Sha256};
 
 fn main() -> Result<(), Error> {
+    pretty_env_logger::formatted_builder()
+        .filter_module("mdr", log::LevelFilter::Debug)
+        .init();
+
     let mut options = Options::empty();
     options.insert(Options::ENABLE_STRIKETHROUGH);
 
