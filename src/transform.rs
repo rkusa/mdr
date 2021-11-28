@@ -2,11 +2,30 @@ use deunicode::deunicode;
 use once_cell::sync::Lazy;
 use pulldown_cmark::{CodeBlockKind, CowStr, Event, Tag};
 use syntect::html::{ClassStyle, ClassedHTMLGenerator};
-use syntect::parsing::Scope;
 use syntect::parsing::SyntaxSet;
+use syntect::parsing::{Scope, SyntaxDefinition};
 use syntect::util::LinesWithEndings;
 
-static SYNTAX_SET: Lazy<SyntaxSet> = Lazy::new(SyntaxSet::load_defaults_newlines);
+static SYNTAX_SET: Lazy<SyntaxSet> = Lazy::new(|| {
+    let mut builder = SyntaxSet::load_defaults_newlines().into_builder();
+    builder.add(
+        SyntaxDefinition::load_from_str(
+            include_str!("../syntax/TypeScript.sublime-syntax"),
+            true,
+            None,
+        )
+        .unwrap(),
+    );
+    builder.add(
+        SyntaxDefinition::load_from_str(
+            include_str!("../syntax/TypeScriptReact.sublime-syntax"),
+            true,
+            None,
+        )
+        .unwrap(),
+    );
+    builder.build()
+});
 
 enum State<'a> {
     Heading {
