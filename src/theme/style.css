@@ -230,8 +230,9 @@ pre {
 }
 
 pre code {
-  font-size: 1rem;
+  font-size: 0.9rem;
   padding: 0;
+  line-height: 150%;
 }
 
 .source .path, .source .generic, .source .name {
