@@ -54,8 +54,8 @@ body {
 }
 
 [role="main"] p, [role="main"] li, [role="main"] pre {
-  margin-block-start: 1em;
-  margin-block-end: 1em;
+  margin-block-start: 0.5em;
+  margin-block-end: 0.5em;
 }
 
 /* header */
@@ -221,7 +221,7 @@ code, pre {
 code {
   font-size: 85%;
   margin: 0;
-  padding: 4px 8px;
+  padding: 3px 8px;
 }
 
 pre {
@@ -235,12 +235,17 @@ pre code {
   line-height: 150%;
 }
 
-.source .path, .source .generic, .source .name {
-  /* font-weight: 600; */
+.source .entity.name {
+  font-weight: 600;
 }
 
 .source .type {
   font-weight: normal;
+  /* color: var(--code-theme-type); */
+}
+
+.source .keyword {
+  font-weight: 600;
   color: var(--code-theme-type);
 }
 
@@ -256,6 +261,10 @@ pre code {
 .source .comment {
   color: var(--code-theme-comment);
   font-style: italic;
+}
+
+.source .entity {
+  color: var(--code-theme-fg);
 }
 
 /* blockquote */
