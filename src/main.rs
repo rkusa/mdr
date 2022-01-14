@@ -13,6 +13,7 @@ use lol_html::html_content::ContentType;
 use lol_html::{element, rewrite_str, ElementContentHandlers, RewriteStrSettings, Selector};
 use pulldown_cmark::{html, Options, Parser};
 use sha2::{Digest, Sha256};
+use url::Url;
 
 fn main() -> Result<(), Error> {
     let mut options = Options::empty();
@@ -105,33 +106,73 @@ fn main() -> Result<(), Error> {
         let content = rewrite_str(
             &content,
             RewriteStrSettings {
-                element_content_handlers: vec![element!("img", |el| {
-                    if let Some(src) = el.get_attribute("src") {
-                        let src = Path::new(&src);
-                        if src.is_absolute() {
-                            return Ok(());
+                element_content_handlers: vec![
+                    element!("img", |el| {
+                        if let Some(url) = el.get_attribute("src") {
+                            if url.is_empty() || Url::parse(&url).is_ok() {
+                                // Url::parse only succeeds for absolute URLs
+                                return Ok(());
+                            }
+
+                            let src = Path::new(&url);
+                            if src.is_absolute() {
+                                return Ok(());
+                            }
+
+                            // relative to post's markdown file
+                            let src = if let Some(base) = path.parent() {
+                                base.join(src)
+                            } else {
+                                src.to_path_buf()
+                            };
+                            if !src.is_file() {
+                                return Ok(());
+                            }
+
+                            let name = src.file_stem().and_then(|n| n.to_str()).unwrap_or("image");
+                            let ext = src.extension().and_then(|n| n.to_str());
+                            let new_src = hash_and_write(name, ext, &fs::read(&src)?)?;
+                            el.set_attribute("src", &new_src)?;
+
+                            // TODO: wrap in link
+                            // TODO: convert image type?
                         }
+                        Ok(())
+                    }),
+                    element!("a", |el| {
+                        if let Some(url) = el.get_attribute("href") {
+                            if url.is_empty() || Url::parse(&url).is_ok() {
+                                // Url::parse only succeeds for absolute URLs
+                                return Ok(());
+                            }
 
-                        // relative to post's markdown file
-                        let src = if let Some(base) = path.parent() {
-                            base.join(src)
-                        } else {
-                            src.to_path_buf()
-                        };
-                        if !src.is_file() {
-                            return Ok(());
+                            let src = Path::new(&url);
+                            if src.is_absolute() {
+                                return Ok(());
+                            }
+
+                            // relative to post's markdown file
+                            let src = if let Some(base) = path.parent() {
+                                base.join(src)
+                            } else {
+                                src.to_path_buf()
+                            };
+                            if !src.is_file() {
+                                return Ok(());
+                            }
+
+                            let name = src.file_stem().and_then(|n| n.to_str()).unwrap_or("image");
+                            let ext = src.extension().and_then(|n| n.to_str());
+                            let new_src = hash_and_write(name, ext, &fs::read(&src)?)?;
+                            el.set_attribute("href", &new_src)?;
+
+                            // TODO: wrap in link
+                            // TODO: convert image type?
+                            // TODO: reduce duplication with above code
                         }
-
-                        let name = src.file_stem().and_then(|n| n.to_str()).unwrap_or("image");
-                        let ext = src.extension().and_then(|n| n.to_str());
-                        let new_src = hash_and_write(name, ext, &fs::read(&src)?)?;
-                        el.set_attribute("src", &new_src)?;
-
-                        // TODO: wrap in link
-                        // TODO: convert image type?
-                    }
-                    Ok(())
-                })],
+                        Ok(())
+                    }),
+                ],
                 ..RewriteStrSettings::default()
             },
         )?;

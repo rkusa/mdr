@@ -20,4 +20,5 @@ pulldown-cmark = "0.8"
 sha2 = "0.9"
 syntect = { version = "4.6" }
 thiserror = "1.0"
+url = "2.2"
 xml-rs = "0.8"
