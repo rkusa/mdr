@@ -28,17 +28,18 @@ fn main() -> Result<(), Error> {
             if let Some(href) = el.get_attribute("href") {
                 match href.as_str() {
                     "normalize.css" => {
-                        let new_href = hash_and_write(
-                            "normalize",
-                            Some("css"),
-                            include_str!("theme/normalize.css"),
+                        fs::write(
+                            Path::new(CONFIG.out_dir()).join(env!("NORMALIZE_CSS")),
+                            include_str!(concat!(env!("OUT_DIR"), "/", env!("NORMALIZE_CSS"))),
                         )?;
-                        el.set_attribute("href", &new_href)?;
+                        el.set_attribute("href", env!("NORMALIZE_CSS"))?;
                     }
                     "style.css" => {
-                        let new_href =
-                            hash_and_write("style", Some("css"), include_str!("theme/style.css"))?;
-                        el.set_attribute("href", &new_href)?;
+                        fs::write(
+                            Path::new(CONFIG.out_dir()).join(env!("STYLE_CSS")),
+                            include_str!(concat!(env!("OUT_DIR"), "/", env!("STYLE_CSS"))),
+                        )?;
+                        el.set_attribute("href", env!("STYLE_CSS"))?;
                     }
                     _ => {}
                 }
@@ -107,6 +108,7 @@ fn main() -> Result<(), Error> {
             &content,
             RewriteStrSettings {
                 element_content_handlers: vec![
+                    // from image tags
                     element!("img", |el| {
                         if let Some(url) = el.get_attribute("src") {
                             if url.is_empty() || Url::parse(&url).is_ok() {
@@ -139,6 +141,7 @@ fn main() -> Result<(), Error> {
                         }
                         Ok(())
                     }),
+                    // links
                     element!("a", |el| {
                         if let Some(url) = el.get_attribute("href") {
                             if url.is_empty() || Url::parse(&url).is_ok() {
