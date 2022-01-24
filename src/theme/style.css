@@ -50,7 +50,7 @@ body {
 }
 
 [role="main"] p, [role="main"] li {
-  line-height: 1.45em;
+  line-height: 1.5em;
 }
 
 [role="main"] p, [role="main"] li, [role="main"] pre {
@@ -216,6 +216,7 @@ code, pre {
   color: var(--code-theme-fg);
   background-color: var(--code-theme-bg);
   border-radius: 4px;
+  tab-size: 2.22rem;
 }
 
 code {
